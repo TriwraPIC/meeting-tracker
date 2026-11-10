@@ -1,0 +1,20 @@
+{
+  "name": "會議管考流程平台",
+  "short_name": "會議管考",
+  "description": "追蹤會議工項是否 delay，即時多人同步管考",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f7fa",
+  "theme_color": "#2c5282",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
