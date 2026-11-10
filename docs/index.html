@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2c5282">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="會議管考">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>會議管考流程平台</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Microsoft JhengHei", "PingFang TC", sans-serif;
+    margin: 0; padding: 0; background: #f5f7fa; color: #222;
+  }
+  header {
+    background: #2c5282; color: white; padding: 16px 24px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 20px; flex: 1; }
+  header select, header button, header input {
+    padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px;
+  }
+  header button { background: #38a169; color: white; cursor: pointer; }
+  header button:hover { background: #2f855a; }
+  header .danger { background: #e53e3e; }
+  header .danger:hover { background: #c53030; }
+
+  #config-banner {
+    background: #fff3cd; color: #856404; padding: 12px 24px;
+    border-bottom: 1px solid #ffeaa7;
+  }
+  #config-banner code { background: #f8f0d0; padding: 2px 6px; border-radius: 3px; }
+
+  #meeting-info {
+    background: white; padding: 12px 24px; border-bottom: 1px solid #e2e8f0;
+    display: flex; gap: 32px; flex-wrap: wrap; font-size: 14px;
+  }
+  #meeting-info .label { color: #718096; margin-right: 8px; }
+  #meeting-info .value { font-weight: 600; color: #2d3748; }
+
+  main { padding: 20px 24px; }
+  table {
+    width: 100%; border-collapse: collapse; background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-radius: 8px; overflow: hidden;
+  }
+  th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  th { background: #edf2f7; font-size: 13px; color: #4a5568; font-weight: 600; }
+  tbody tr:hover { background: #f7fafc; }
+
+  .col-seq { width: 50px; text-align: center; }
+  .col-text { min-width: 300px; }
+  .col-offset { width: 130px; }
+  .col-deadline { width: 130px; }
+  .col-check { width: 60px; text-align: center; }
+  .col-act { width: 90px; text-align: center; }
+
+  .item-text { white-space: pre-line; line-height: 1.5; }
+  .offset-display { font-family: monospace; font-size: 14px; }
+  .deadline-display { font-size: 13px; color: #4a5568; }
+
+  .overdue { background: #fef3c7 !important; }
+  .overdue .item-text, .overdue .deadline-display, .overdue .offset-display {
+    color: #dc2626; font-weight: 600;
+  }
+
+  .done .item-text { text-decoration: line-through; color: #a0aec0; }
+  .done { background: #f0fff4; }
+
+  .icon-btn {
+    background: none; border: none; cursor: pointer; padding: 4px 6px;
+    border-radius: 4px; font-size: 15px; color: #718096;
+  }
+  .icon-btn:hover { background: #e2e8f0; color: #2d3748; }
+  .icon-btn.delete:hover { background: #fed7d7; color: #c53030; }
+
+  input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+
+  .toolbar {
+    margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  #add-item-btn, #reset-defaults-btn {
+    padding: 10px 16px;
+    border-radius: 6px; border: none; cursor: pointer; font-size: 14px;
+  }
+  #add-item-btn { background: #38a169; color: white; }
+  #add-item-btn:hover { background: #2f855a; }
+  #reset-defaults-btn { background: #ed8936; color: white; }
+  #reset-defaults-btn:hover { background: #dd6b20; }
+
+  .modal select {
+    width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0;
+    border-radius: 6px; font-size: 14px; font-family: inherit; background: white;
+  }
+
+  .modal-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal {
+    background: white; padding: 24px; border-radius: 10px;
+    width: 90%; max-width: 480px;
+  }
+  .modal h2 { margin-top: 0; }
+  .modal label { display: block; margin: 12px 0 4px; font-size: 14px; color: #4a5568; }
+  .modal input, .modal textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid #cbd5e0;
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+  }
+  .modal textarea { min-height: 80px; resize: vertical; }
+  .modal .actions { margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; }
+  .modal button {
+    padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px;
+  }
+  .modal .primary { background: #3182ce; color: white; }
+  .modal .secondary { background: #e2e8f0; color: #2d3748; }
+  .error-msg { color: #c53030; font-size: 13px; margin-top: 4px; }
+
+  .no-meeting {
+    padding: 20px 0;
+  }
+  .no-meeting h2 {
+    font-size: 16px; color: #4a5568; margin: 0 0 16px;
+  }
+  .no-meeting .empty-msg {
+    text-align: center; padding: 40px 20px; color: #718096;
+    background: white; border-radius: 8px;
+  }
+  .meeting-cards {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .meeting-card {
+    background: white; padding: 16px; border-radius: 8px; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #2c5282;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .meeting-card:hover {
+    transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+  .meeting-card .mc-name { font-weight: 600; font-size: 15px; color: #2d3748; margin-bottom: 8px; }
+  .meeting-card .mc-info { font-size: 13px; color: #718096; }
+  .meeting-card .mc-info span { margin-right: 12px; }
+  .meeting-card.has-overdue { border-left-color: #e53e3e; }
+  .meeting-card .mc-overdue-badge {
+    display: inline-block; background: #e53e3e; color: white; font-size: 11px;
+    padding: 2px 8px; border-radius: 10px; margin-top: 6px;
+  }
+
+  #back-btn {
+    background: #4a5568; color: white; padding: 8px 12px;
+    border-radius: 6px; border: none; cursor: pointer; font-size: 14px;
+  }
+  #back-btn:hover { background: #2d3748; }
+
+  .status-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: #cbd5e0; margin-right: 6px;
+  }
+  .status-dot.connected { background: #38a169; }
+
+  @media (max-width: 700px) {
+    .col-text { min-width: 200px; }
+    header h1 { font-size: 16px; width: 100%; }
+    #meeting-info { gap: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="config-banner" style="display:none;">
+  ⚠️ 尚未設定 Firebase。請將 Firebase Console 的 config 貼入 <code>index.html</code> 中的 <code>firebaseConfig</code> 變數，並重新整理。
+</div>
+
+<header>
+  <button id="back-btn" style="display:none;">← 返回列表</button>
+  <h1>📋 會議管考流程平台</h1>
+  <span style="font-size:13px;"><span class="status-dot" id="status-dot"></span><span id="status-text">連線中…</span></span>
+  <select id="meeting-selector">
+    <option value="">— 選擇會議 —</option>
+  </select>
+  <button id="new-meeting-btn">＋ 新增會議</button>
+  <button id="delete-meeting-btn" class="danger" style="display:none;">🗑️ 刪除此會議</button>
+</header>
+
+<div id="meeting-info" style="display:none;">
+  <div><span class="label">會議名稱：</span><span class="value" id="info-name"></span></div>
+  <div><span class="label">負責人分機：</span><span class="value" id="info-ext"></span></div>
+  <div><span class="label">會議日期 (X)：</span><span class="value" id="info-date"></span></div>
+</div>
+
+<main>
+  <div id="no-meeting" class="no-meeting">
+    <h2>📂 現有會議列表（點卡片開啟）</h2>
+    <div id="meeting-cards" class="meeting-cards"></div>
+    <div id="empty-msg" class="empty-msg" style="display:none;">
+      目前沒有任何會議。點右上角「＋ 新增會議」開始建立第一場。
+    </div>
+  </div>
+
+  <div id="meeting-view" style="display:none;">
+    <div class="toolbar">
+      <button id="add-item-btn">＋ 新增項目</button>
+      <button id="reset-defaults-btn">🔄 重設為預設 24 項</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-seq">序號</th>
+          <th class="col-text">待辦事項</th>
+          <th class="col-offset">期限 (工作日)</th>
+          <th class="col-deadline">期限日</th>
+          <th class="col-check">完成</th>
+          <th class="col-act">操作</th>
+        </tr>
+      </thead>
+      <tbody id="todo-body"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- New meeting modal -->
+<div class="modal-backdrop" id="new-meeting-modal" style="display:none;">
+  <div class="modal">
+    <h2>新增會議</h2>
+    <label>會議名稱</label>
+    <input id="nm-name" placeholder="例：115年度Q1綠能管考會議">
+    <label>負責人分機（3–4 位阿拉伯數字）</label>
+    <input id="nm-ext" maxlength="4" inputmode="numeric" placeholder="例：1234">
+    <div class="error-msg" id="nm-ext-err" style="display:none;">請輸入 3 或 4 位阿拉伯數字</div>
+    <label>會議日期 (X) — 可直接輸入 8 位數字，例：20260807</label>
+    <input id="nm-date" type="text" maxlength="10" inputmode="numeric" placeholder="YYYY-MM-DD">
+    <div class="actions">
+      <button class="secondary" id="nm-cancel">取消</button>
+      <button class="primary" id="nm-create">建立</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add item modal -->
+<div class="modal-backdrop" id="add-item-modal" style="display:none;">
+  <div class="modal">
+    <h2>新增項目</h2>
+    <label>待辦事項內容（可多行，換行請按 Enter）</label>
+    <textarea id="ai-text" placeholder="例：確認場地佈置"></textarea>
+    <label>期限（工作日相對於 X，正數為 X 之後，負數為 X 之前，0 為當天）</label>
+    <input id="ai-offset" type="number" step="1" value="0">
+    <label>插入位置</label>
+    <select id="ai-position"></select>
+    <div class="actions">
+      <button class="secondary" id="ai-cancel">取消</button>
+      <button class="primary" id="ai-save">新增</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit item modal -->
+<div class="modal-backdrop" id="edit-item-modal" style="display:none;">
+  <div class="modal">
+    <h2>編輯項目</h2>
+    <label>待辦事項內容（可多行，換行請按 Enter）</label>
+    <textarea id="ei-text"></textarea>
+    <label>期限（工作日相對於 X，正數為 X 之後，負數為 X 之前，0 為當天）</label>
+    <input id="ei-offset" type="number" step="1">
+    <div class="actions">
+      <button class="secondary" id="ei-cancel">取消</button>
+      <button class="primary" id="ei-save">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Service Worker 註冊（PWA 安裝需要）
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(err => console.log('SW 註冊失敗:', err));
+  });
+}
+</script>
+
+<script type="module">
+// =============== Firebase config ================
+// ⚠️ 請把 Firebase Console 的 config 物件貼在這裡覆蓋
+const firebaseConfig = {
+  apiKey: "AIzaSyD5W61vfLthKh_QrMeZ1xKdjSsB3VKkD24",
+  authDomain: "meeting-tracker-57084.firebaseapp.com",
+  projectId: "meeting-tracker-57084",
+  storageBucket: "meeting-tracker-57084.firebasestorage.app",
+  messagingSenderId: "65355088902",
+  appId: "1:65355088902:web:cca03259350e3f42862f87"
+};
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, deleteDoc, updateDoc,
+  onSnapshot, serverTimestamp, query, orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Check config
+const configReady = firebaseConfig && firebaseConfig.apiKey;
+if (!configReady) {
+  document.getElementById('config-banner').style.display = 'block';
+  document.getElementById('status-text').textContent = '未設定';
+}
+
+let db = null;
+if (configReady) {
+  const app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+}
+
+// =============== 台灣國定假日（2025-2027, weekday only, excludes Sat/Sun） ===============
+// 格式：'YYYY-MM-DD'。可自行編輯增減。
+const TW_HOLIDAYS = new Set([
+  // 2025 下半年（新增假日）
+  '2025-09-29', // 教師節補假
+  '2025-10-24', // 光復節補假
+  '2025-12-25', // 行憲紀念日
+  // 2026
+  '2026-01-01', // 元旦
+  '2026-02-16', // 除夕
+  '2026-02-17', // 初一
+  '2026-02-18', // 初二
+  '2026-02-19', // 初三
+  '2026-02-20', // 春節補假
+  '2026-02-27', // 228 補假
+  '2026-04-03', // 兒童節補假
+  '2026-04-06', // 清明補假
+  '2026-05-01', // 勞動節
+  '2026-06-19', // 端午節
+  '2026-09-25', // 中秋節
+  '2026-09-28', // 教師節
+  '2026-10-09', // 國慶補假
+  '2026-10-26', // 光復節補假
+  '2026-12-25', // 行憲紀念日
+  // 2027 (初步預估，公布後請更新)
+  '2027-01-01',
+  '2027-02-05','2027-02-08','2027-02-09','2027-02-10','2027-02-11','2027-02-12',
+  '2027-03-01',
+  '2027-04-05',
+  '2027-05-03',
+  '2027-06-09',
+  '2027-09-16','2027-09-17',
+  '2027-10-11','2027-10-25',
+  '2027-12-24',
+]);
+
+// =============== 工作日計算 ===============
+function fmt(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function isWorkday(d) {
+  const w = d.getDay();
+  if (w === 0 || w === 6) return false;
+  if (TW_HOLIDAYS.has(fmt(d))) return false;
+  return true;
+}
+// 從 baseDate（會議日 X）計算加/減 N 個工作日
+// offset = 0 → 回傳 X 本身（不論是否為工作日）
+// offset > 0 → 往後跳 N 個工作日
+// offset < 0 → 往前跳 N 個工作日
+function calcDeadline(baseDate, offset) {
+  const d = new Date(baseDate);
+  d.setHours(0,0,0,0);
+  if (offset === 0) return d;
+  const step = offset > 0 ? 1 : -1;
+  let remaining = Math.abs(offset);
+  while (remaining > 0) {
+    d.setDate(d.getDate() + step);
+    if (isWorkday(d)) remaining--;
+  }
+  return d;
+}
+function fmtDisplay(d) {
+  const dow = ['日','一','二','三','四','五','六'][d.getDay()];
+  return `${fmt(d)} (${dow})`;
+}
+function fmtOffset(n) {
+  if (n === 0) return 'X';
+  if (n > 0) return `X + ${n}`;
+  return `X − ${-n}`;
+}
+
+// =============== 24 項預設待辦 ===============
+const DEFAULT_ITEMS = [
+  { text: '議程確認（提供農糧署）', offset: -3 },
+  { text: '會議資料確認（提供農糧署）', offset: -3 },
+  { text: '簡報內容確認（提供農糧署）', offset: -3 },
+  { text: '會議預擬結論', offset: -3 },
+  { text: '發文（含開會通知單、議程）', offset: -4 },
+  { text: '寄信給專家委員（會議前至少 3 天）', offset: -3 },
+  { text: '會議資料印製（包含：議程、簡報、發言單等）', offset: -3 },
+  { text: '簡報試講（會議當天主講人）', offset: -3 },
+  { text: '會議前置作業：\n  1. 製作簽到表\n  2. 準備會議資料\n  3. 預請款申請\n  4. 備妥領據\n  5. 訂餐\n  6. 設備借用\n  7. 住宿與交通規劃相關事宜', offset: -3 },
+  { text: '會議當日人力配置（含出席人員）與分工：\n  1. 場佈\n  2. 拍照\n  3. 錄音\n  4. 回收領據或收據', offset: -3 },
+  { text: '製作會議紀錄（當天完成寄給承辦）', offset: 0 },
+  { text: '會議紀錄確認—承辦、委員（隔天寄給委員）', offset: 1 },
+  { text: '配合會議記錄與結論修正指引（隔天修正完成製作推廣活動簡報）', offset: 3 },
+  { text: '聯繫農會並確認農會出席代表', offset: 7 },
+  { text: '確定推廣活動日期', offset: 7 },
+  { text: '推廣活動議程確認', offset: 7 },
+  { text: '推廣活動資料確認', offset: 7 },
+  { text: '簡報內容確認', offset: 7 },
+  { text: '發文（含開會通知單、議程）', offset: 7 },
+  { text: '推廣活動資料印製（包含：議程、簡報、發言單等）', offset: 7 },
+  { text: '推廣活動前置作業：\n  1. 製作簽到表\n  2. 準備會議資料\n  3. 預請款申請\n  4. 備妥領據\n  5. 訂餐\n  6. 設備借用\n  7. 住宿與交通規劃相關事宜', offset: 7 },
+  { text: '推廣活動當日人力配置（含出席人員與當日報告人）與分工：\n  1. 場佈\n  2. 拍照\n  3. 錄音\n  4. 回收領據或收據', offset: 7 },
+  { text: '製作推廣活動紀錄（包含 QA）', offset: 7 },
+  { text: '報告撰寫', offset: 14 },
+];
+function makeDefaultItems() {
+  return DEFAULT_ITEMS.map((it, i) => ({
+    id: 'i' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2,7),
+    text: it.text,
+    offset: it.offset,
+    done: false,
+    doneAt: null,
+  }));
+}
+
+// =============== State ===============
+let meetings = [];              // list from Firestore
+let currentMeetingId = null;
+let currentMeeting = null;
+
+// =============== DOM ===============
+const $ = id => document.getElementById(id);
+const selector = $('meeting-selector');
+const noMeeting = $('no-meeting');
+const meetingView = $('meeting-view');
+const infoPanel = $('meeting-info');
+const todoBody = $('todo-body');
+const deleteBtn = $('delete-meeting-btn');
+
+// =============== Firestore subscribe ===============
+if (db) {
+  const q = query(collection(db, 'meetings'), orderBy('createdAt', 'desc'));
+  onSnapshot(q, snap => {
+    meetings = [];
+    snap.forEach(docSnap => {
+      meetings.push({ id: docSnap.id, ...docSnap.data() });
+    });
+    renderSelector();
+    if (currentMeetingId) {
+      const found = meetings.find(m => m.id === currentMeetingId);
+      if (found) {
+        currentMeeting = found;
+      } else {
+        // deleted by someone else
+        currentMeetingId = null;
+        currentMeeting = null;
+      }
+    }
+    renderMeeting();
+    $('status-dot').classList.add('connected');
+    $('status-text').textContent = '已連線';
+  }, err => {
+    console.error(err);
+    $('status-text').textContent = '連線失敗：' + err.message;
+  });
+}
+
+function renderSelector() {
+  const cur = selector.value;
+  selector.innerHTML = '<option value="">— 選擇會議 —</option>';
+  meetings.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = `${m.name}（${m.meetingDate}｜分機 ${m.ext}）`;
+    selector.appendChild(opt);
+  });
+  if (cur) selector.value = cur;
+  if (currentMeetingId) selector.value = currentMeetingId;
+}
+
+selector.addEventListener('change', () => {
+  currentMeetingId = selector.value || null;
+  currentMeeting = meetings.find(m => m.id === currentMeetingId) || null;
+  renderMeeting();
+});
+
+function renderMeeting() {
+  const backBtn = $('back-btn');
+  if (!currentMeeting) {
+    noMeeting.style.display = 'block';
+    meetingView.style.display = 'none';
+    infoPanel.style.display = 'none';
+    deleteBtn.style.display = 'none';
+    backBtn.style.display = 'none';
+    renderMeetingCards();
+    return;
+  }
+  noMeeting.style.display = 'none';
+  meetingView.style.display = 'block';
+  infoPanel.style.display = 'flex';
+  deleteBtn.style.display = 'inline-block';
+  backBtn.style.display = 'inline-block';
+
+  $('info-name').textContent = currentMeeting.name;
+  $('info-ext').textContent = currentMeeting.ext;
+  const baseDate = new Date(currentMeeting.meetingDate + 'T00:00:00');
+  $('info-date').textContent = fmtDisplay(baseDate);
+
+  // build rows
+  todoBody.innerHTML = '';
+  const now = new Date();
+  const items = currentMeeting.items || [];
+  items.forEach((it, idx) => {
+    const deadline = calcDeadline(baseDate, it.offset);
+    const deadlineCheckMoment = new Date(deadline);
+    deadlineCheckMoment.setHours(17,0,0,0);
+    const isOverdue = !it.done && now > deadlineCheckMoment;
+
+    const tr = document.createElement('tr');
+    if (it.done) tr.classList.add('done');
+    if (isOverdue) tr.classList.add('overdue');
+
+    tr.innerHTML = `
+      <td class="col-seq">${idx + 1}</td>
+      <td class="col-text"><div class="item-text"></div></td>
+      <td class="col-offset"><span class="offset-display">${fmtOffset(it.offset)}</span></td>
+      <td class="col-deadline"><span class="deadline-display">${fmtDisplay(deadline)}</span></td>
+      <td class="col-check"><input type="checkbox" ${it.done ? 'checked' : ''}></td>
+      <td class="col-act">
+        <button class="icon-btn edit-btn" title="編輯">✏️</button>
+        <button class="icon-btn delete delete-btn" title="刪除">🗑️</button>
+      </td>
+    `;
+    tr.querySelector('.item-text').textContent = it.text;
+    tr.querySelector('input[type=checkbox]').addEventListener('change', e => {
+      toggleDone(it.id, e.target.checked);
+    });
+    tr.querySelector('.edit-btn').addEventListener('click', () => openEditModal(it.id));
+    tr.querySelector('.delete-btn').addEventListener('click', () => {
+      if (confirm('確定刪除此項目？')) deleteItem(it.id);
+    });
+    todoBody.appendChild(tr);
+  });
+}
+
+// Refresh every minute so overdue state updates around 17:00
+setInterval(() => { if (currentMeeting) renderMeeting(); }, 60000);
+
+// =============== New meeting ===============
+$('new-meeting-btn').addEventListener('click', () => {
+  if (!db) { alert('尚未設定 Firebase'); return; }
+  $('nm-name').value = '';
+  $('nm-ext').value = '';
+  $('nm-date').value = '';
+  $('nm-ext-err').style.display = 'none';
+  $('new-meeting-modal').style.display = 'flex';
+});
+$('nm-cancel').addEventListener('click', () => $('new-meeting-modal').style.display = 'none');
+$('nm-ext').addEventListener('input', e => {
+  e.target.value = e.target.value.replace(/\D/g, '').slice(0,4);
+});
+$('nm-date').addEventListener('input', e => {
+  let v = e.target.value.replace(/\D/g, '').slice(0, 8);
+  let formatted = v;
+  if (v.length > 6) formatted = v.slice(0,4) + '-' + v.slice(4,6) + '-' + v.slice(6);
+  else if (v.length > 4) formatted = v.slice(0,4) + '-' + v.slice(4);
+  else if (v.length > 0) formatted = v;
+  e.target.value = formatted;
+});
+$('nm-create').addEventListener('click', async () => {
+  const name = $('nm-name').value.trim();
+  const ext = $('nm-ext').value.trim();
+  const date = $('nm-date').value.trim();
+  if (!name) { alert('請輸入會議名稱'); return; }
+  if (!/^\d{3,4}$/.test(ext)) {
+    $('nm-ext-err').style.display = 'block';
+    return;
+  }
+  // 驗證日期格式 YYYY-MM-DD 且為合法日期
+  const m = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) { alert('日期格式錯誤，請填 YYYY-MM-DD（例：2026-08-07）或直接打 8 位數字 20260807'); return; }
+  const y = +m[1], mo = +m[2], d = +m[3];
+  const dt = new Date(y, mo-1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo-1 || dt.getDate() !== d) {
+    alert('日期不存在，請確認');
+    return;
+  }
+  const newMeeting = {
+    name, ext, meetingDate: date,
+    items: makeDefaultItems(),
+    createdAt: serverTimestamp(),
+  };
+  try {
+    const ref = await addDoc(collection(db, 'meetings'), newMeeting);
+    currentMeetingId = ref.id;
+    $('new-meeting-modal').style.display = 'none';
+  } catch (e) {
+    alert('建立失敗：' + e.message);
+  }
+});
+
+// =============== Delete meeting ===============
+deleteBtn.addEventListener('click', async () => {
+  if (!currentMeeting) return;
+  if (!confirm(`確定刪除會議「${currentMeeting.name}」？此動作無法還原。`)) return;
+  try {
+    await deleteDoc(doc(db, 'meetings', currentMeetingId));
+    currentMeetingId = null;
+    currentMeeting = null;
+  } catch (e) { alert('刪除失敗：' + e.message); }
+});
+
+// =============== Toggle done ===============
+async function toggleDone(itemId, done) {
+  if (!currentMeeting) return;
+  const items = currentMeeting.items.map(it =>
+    it.id === itemId ? { ...it, done, doneAt: done ? new Date().toISOString() : null } : it
+  );
+  await updateDoc(doc(db, 'meetings', currentMeetingId), { items });
+}
+
+// =============== Edit item ===============
+let editingItemId = null;
+function openEditModal(itemId) {
+  const it = currentMeeting.items.find(x => x.id === itemId);
+  if (!it) return;
+  editingItemId = itemId;
+  $('ei-text').value = it.text;
+  $('ei-offset').value = it.offset;
+  $('edit-item-modal').style.display = 'flex';
+}
+$('ei-cancel').addEventListener('click', () => $('edit-item-modal').style.display = 'none');
+$('ei-save').addEventListener('click', async () => {
+  const text = $('ei-text').value.trim();
+  const offset = parseInt($('ei-offset').value, 10);
+  if (!text) { alert('內容不可空白'); return; }
+  if (isNaN(offset)) { alert('期限工作日數請填整數'); return; }
+  const items = currentMeeting.items.map(it =>
+    it.id === editingItemId ? { ...it, text, offset } : it
+  );
+  await updateDoc(doc(db, 'meetings', currentMeetingId), { items });
+  $('edit-item-modal').style.display = 'none';
+});
+
+// =============== Delete item ===============
+async function deleteItem(itemId) {
+  const items = currentMeeting.items.filter(it => it.id !== itemId);
+  await updateDoc(doc(db, 'meetings', currentMeetingId), { items });
+}
+
+// =============== Add item (with position) ===============
+$('add-item-btn').addEventListener('click', () => {
+  if (!currentMeeting) return;
+  $('ai-text').value = '';
+  $('ai-offset').value = 0;
+  // build position options
+  const items = currentMeeting.items || [];
+  const sel = $('ai-position');
+  sel.innerHTML = '';
+  const optFirst = document.createElement('option');
+  optFirst.value = '0';
+  optFirst.textContent = '插入到最前面（成為第 1 項）';
+  sel.appendChild(optFirst);
+  items.forEach((it, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx + 1);
+    const preview = it.text.split('\n')[0].slice(0, 20);
+    opt.textContent = `插入到第 ${idx + 1} 項之後（${preview}${it.text.length > 20 ? '…' : ''}）`;
+    sel.appendChild(opt);
+  });
+  sel.value = String(items.length);
+  $('add-item-modal').style.display = 'flex';
+});
+$('ai-cancel').addEventListener('click', () => $('add-item-modal').style.display = 'none');
+$('ai-save').addEventListener('click', async () => {
+  const text = $('ai-text').value.trim();
+  const offset = parseInt($('ai-offset').value, 10);
+  const pos = parseInt($('ai-position').value, 10);
+  if (!text) { alert('請輸入內容'); return; }
+  if (isNaN(offset)) { alert('期限請填整數'); return; }
+  const newItem = {
+    id: 'i' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    text, offset, done: false, doneAt: null,
+  };
+  const items = [...(currentMeeting.items || [])];
+  items.splice(pos, 0, newItem);
+  await updateDoc(doc(db, 'meetings', currentMeetingId), { items });
+  $('add-item-modal').style.display = 'none';
+});
+
+// =============== Back button ===============
+$('back-btn').addEventListener('click', () => {
+  currentMeetingId = null;
+  currentMeeting = null;
+  selector.value = '';
+  renderMeeting();
+});
+
+// =============== Meeting cards on home ===============
+function renderMeetingCards() {
+  const container = $('meeting-cards');
+  const emptyMsg = $('empty-msg');
+  container.innerHTML = '';
+  if (!meetings.length) {
+    container.style.display = 'none';
+    emptyMsg.style.display = 'block';
+    return;
+  }
+  container.style.display = 'grid';
+  emptyMsg.style.display = 'none';
+  const now = new Date();
+  meetings.forEach(m => {
+    const baseDate = new Date(m.meetingDate + 'T00:00:00');
+    let overdueCount = 0, doneCount = 0;
+    const total = (m.items || []).length;
+    (m.items || []).forEach(it => {
+      const dl = calcDeadline(baseDate, it.offset);
+      dl.setHours(17,0,0,0);
+      if (it.done) doneCount++;
+      else if (now > dl) overdueCount++;
+    });
+    const card = document.createElement('div');
+    card.className = 'meeting-card' + (overdueCount > 0 ? ' has-overdue' : '');
+    card.innerHTML = `
+      <div class="mc-name"></div>
+      <div class="mc-info">
+        <span>📅 <b class="mc-date"></b></span>
+        <span>📞 分機 <b class="mc-ext"></b></span>
+      </div>
+      <div class="mc-info" style="margin-top:6px;">
+        進度 ${doneCount}/${total}
+        ${overdueCount > 0 ? `<span class="mc-overdue-badge">⚠️ ${overdueCount} 項逾期</span>` : ''}
+      </div>
+    `;
+    card.querySelector('.mc-name').textContent = m.name;
+    card.querySelector('.mc-date').textContent = m.meetingDate;
+    card.querySelector('.mc-ext').textContent = m.ext;
+    card.addEventListener('click', () => {
+      currentMeetingId = m.id;
+      currentMeeting = m;
+      selector.value = m.id;
+      renderMeeting();
+    });
+    container.appendChild(card);
+  });
+}
+
+// =============== Reset defaults ===============
+$('reset-defaults-btn').addEventListener('click', async () => {
+  if (!confirm('確定將此會議的待辦事項重設為預設 24 項？（現有勾選狀態會全部清除）')) return;
+  await updateDoc(doc(db, 'meetings', currentMeetingId), { items: makeDefaultItems() });
+});
+
+</script>
+</body>
+</html>

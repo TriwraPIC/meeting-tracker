@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 圓角底 -->
+  <rect width="512" height="512" rx="96" fill="#2c5282"/>
+  <!-- 剪貼板主體 -->
+  <rect x="128" y="128" width="256" height="304" rx="20" fill="#ffffff"/>
+  <!-- 剪貼板頂夾 -->
+  <rect x="192" y="96" width="128" height="56" rx="12" fill="#4a5568"/>
+  <rect x="216" y="80" width="80" height="24" rx="8" fill="#4a5568"/>
+  <!-- 待辦項目線 -->
+  <circle cx="176" cy="208" r="10" fill="#38a169"/>
+  <rect x="200" y="200" width="150" height="16" rx="4" fill="#cbd5e0"/>
+  <circle cx="176" cy="256" r="10" fill="#38a169"/>
+  <rect x="200" y="248" width="130" height="16" rx="4" fill="#cbd5e0"/>
+  <circle cx="176" cy="304" r="10" fill="#e53e3e"/>
+  <rect x="200" y="296" width="160" height="16" rx="4" fill="#fed7d7"/>
+  <circle cx="176" cy="352" r="10" fill="#cbd5e0"/>
+  <rect x="200" y="344" width="140" height="16" rx="4" fill="#cbd5e0"/>
+</svg>
